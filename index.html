@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0b12">
+<title>Face Style Finder</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+<style>
+[hidden]{display:none!important}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0e0b12;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.12);--ink:#f6f1ff;--mute:#a79cb8;--g1:#ff8a5b;--g2:#ff4d8d}
+html,body{margin:0;min-height:100%;background:radial-gradient(900px 500px at 50% -180px,#3d1a3a,transparent),var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 18px calc(env(safe-area-inset-bottom,0px) + 36px)}
+header h1{font-size:28px;margin:4px 0 2px;font-weight:800;background:linear-gradient(90deg,var(--g1),var(--g2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{margin:0;color:var(--mute);font-size:14px}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px;margin:18px 0 16px}
+.seg button{flex:1;border:0;background:none;color:var(--mute);padding:10px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;transition:.25s}
+.seg button.on{background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff;box-shadow:0 6px 20px -6px var(--g2)}
+.scanner{position:relative;width:272px;height:272px;margin:0 auto}
+.scanner svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.track{stroke:var(--line)}
+.prog{stroke:url(#gr);stroke-linecap:round;transition:stroke-dashoffset .25s ease}
+.feed{position:absolute;inset:16px;border-radius:50%;overflow:hidden;background:#17121d;box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
+.feed video,.feed img{width:100%;height:100%;object-fit:cover;display:block}
+.feed video{transform:scaleX(-1)}
+.ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--mute);font-size:13px;gap:8px;text-align:center;padding:0 40px}
+.ph b{font-size:46px;line-height:1}
+.scanner.active .feed::after{content:"";position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--g2),transparent);box-shadow:0 0 12px var(--g2);animation:sweep 1.8s ease-in-out infinite}
+@keyframes sweep{0%{top:0}50%{top:100%}100%{top:0}}
+.status{text-align:center;color:var(--mute);font-size:14px;min-height:22px;margin:16px 0 14px}
+.btn{width:100%;border:0;border-radius:16px;padding:16px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--g1),var(--g2));box-shadow:0 10px 30px -10px var(--g2);cursor:pointer;transition:transform .15s,opacity .2s}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--panel);border:1px solid var(--line);box-shadow:none}
+.btn:disabled{opacity:.4;cursor:default}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.upload{display:block;text-align:center;color:var(--mute);font-size:14px;margin-top:14px;text-decoration:underline;cursor:pointer}
+.upload input{display:none}
+.manual{margin-top:20px;text-align:center}
+.manual p{color:var(--mute);font-size:13px;margin:0 0 10px;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:9px 16px;font-size:14px;cursor:pointer;transition:.2s}
+.chip.on{border-color:var(--g2);background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff}
+.hero{background:linear-gradient(135deg,rgba(255,138,91,.2),rgba(255,77,141,.12));border:1px solid var(--line);border-radius:22px;padding:20px;margin:26px 0 6px;animation:up .5s ease}
+.hero small{color:var(--mute);text-transform:uppercase;letter-spacing:.14em;font-size:11px}
+.hero h2{margin:4px 0 6px;font-size:32px}
+.hero p{margin:0;color:var(--mute);font-size:14px;line-height:1.5}
+.sec{margin-top:22px;animation:up .5s ease both}
+.sec h3{font-size:16px;margin:0 0 10px}
+.cards{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.cards::-webkit-scrollbar{display:none}
+.opt{flex:0 0 168px;scroll-snap-align:start;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;cursor:pointer;transition:transform .15s,border-color .2s,background .2s}
+.opt:active{transform:scale(.97)}
+.opt b{display:block;margin:8px 0 4px;font-size:15px}
+.opt span{color:var(--mute);font-size:12.5px;line-height:1.4}
+.opt.sel{border-color:var(--g2);background:linear-gradient(160deg,rgba(255,138,91,.22),rgba(255,77,141,.12));box-shadow:0 10px 26px -14px var(--g2)}
+.opt.sel::after{content:"✓";float:right;color:var(--g2);font-weight:800}
+.foot{text-align:center;color:var(--mute);font-size:12px;margin-top:28px;line-height:1.5}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Face Style Finder</h1>
+    <p>Apna face shape jaano, phir uske liye best styles paao.</p>
+  </header>
+
+  <div class="seg">
+    <button class="on" id="gM" onclick="setGender('man')">Men</button>
+    <button id="gW" onclick="setGender('woman')">Women</button>
+  </div>
+
+  <div class="scanner" id="scanner">
+    <svg viewBox="0 0 272 272">
+      <defs>
+        <linearGradient id="gr" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ff8a5b"/><stop offset="1" stop-color="#ff4d8d"/>
+        </linearGradient>
+      </defs>
+      <circle class="track" cx="136" cy="136" r="128" fill="none" stroke-width="6"/>
+      <circle class="prog" id="ring" cx="136" cy="136" r="128" fill="none" stroke-width="6" stroke-dasharray="804" stroke-dashoffset="804"/>
+    </svg>
+    <div class="feed">
+      <video id="video" playsinline muted hidden></video>
+      <img id="photo" alt="" hidden>
+      <div class="ph" id="ph"><b>📷</b>Camera on karo, ya photo upload karo</div>
+    </div>
+  </div>
+
+  <div class="status" id="status">Seedha camera dekho, phir scan karo.</div>
+
+  <div class="row">
+    <button class="btn ghost" id="camBtn" onclick="startCam()">Camera on</button>
+    <button class="btn" id="scanBtn" onclick="startScan()" disabled>Scan karo</button>
+  </div>
+  <label class="upload">Ya apni photo upload karo<input type="file" accept="image/*" id="file"></label>
+
+  <div class="manual">
+    <p>Camera ya photo se kaam na bane? Apna shape khud chuno:</p>
+    <div class="chips">
+      <button class="chip" data-s="oval" onclick="pickShape('oval')">Oval</button>
+      <button class="chip" data-s="round" onclick="pickShape('round')">Round</button>
+      <button class="chip" data-s="square" onclick="pickShape('square')">Square</button>
+      <button class="chip" data-s="oblong" onclick="pickShape('oblong')">Oblong</button>
+      <button class="chip" data-s="heart" onclick="pickShape('heart')">Heart</button>
+      <button class="chip" data-s="diamond" onclick="pickShape('diamond')">Diamond</button>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <p class="foot">Ye result approximate hai. Achhi roshni mein, seedha dekh kar scan karne se sahi aata hai.</p>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const video = $('#video'), photo = $('#photo'), ring = $('#ring');
+const C = 804;
+const TITLE = {hair:'💇 Hairstyle', beard:'🧔 Beard', sun:'🕶️ Sunglasses', eye:'👓 Eyeglasses'};
+const LAB = {oval:'Oval', round:'Round', square:'Square', oblong:'Oblong', heart:'Heart', diamond:'Diamond'};
+const DESC = {
+  oval: 'Sabse balanced shape. Lagbhag sab styles aap pe suit karte hain.',
+  round: 'Cheeks aur jaw soft hain. Length aur angles dene wale styles best lagte hain.',
+  square: 'Strong jaw aur chaudi forehead. Soft curves wale styles balance karte hain.',
+  oblong: 'Lamba face. Width add karne wale aur forehead/chin chhota dikhane wale options best hain.',
+  heart: 'Forehead chaudi, chin narrow. Bottom-heavy frames aur chin volume balance karte hain.',
+  diamond: 'Cheekbones sabse chaude. Forehead aur chin ko width dene wale styles best hain.'
+};
+// [name, reason]
+const DATA = {
+  man: {
+    oval: {
+      hair: [['Textured crop','Sharp aur modern'],['Side part','Clean aur classic'],['Quiff','Thoda height, balance']],
+      beard: [['Stubble','Clean-cut look'],['Short boxed beard','Jawline define karti'],['Full beard','Oval pe balanced']],
+      sun: [['Aviator','Classic aur flattering'],['Wayfarer','Roz pehno, versatile'],['Round','Retro vibe']],
+      eye: [['Rectangular','Balance deta hai'],['Square','Bold look'],['Rimless','Light aur minimal']]
+    },
+    round: {
+      hair: [['Quiff','Height se face lamba dikhta'],['Pompadour','Top volume, sides short'],['Textured top + short sides','Round shape slim dikhata']],
+      beard: [['Chinstrap','Jaw line lamba dikhati'],['Goatee','Chin pe length add'],['Boxed beard','Sharp edges']],
+      sun: [['Rectangular','Width balance karta'],['Wayfarer','Angular frames'],['Square','Contrast deta']],
+      eye: [['Rectangular','Angles add karta'],['Browline','Structure deta'],['Square','Sharp look']]
+    },
+    square: {
+      hair: [['Textured crop','Jaw ko soft karta'],['French crop','Forehead open dikhta'],['Medium swept back','Angles soften']],
+      beard: [['Stubble','Jaw soft karta'],['Rounded short beard','Angles neutralize'],['Full beard, round edges','Sharp jaw kam dikhta']],
+      sun: [['Round','Angles ka ulta contrast'],['Aviator','Soft curves'],['Oval','Balanced look']],
+      eye: [['Round','Angles ko soft karta'],['Oval','Gentle shape'],['Wire frame','Light aur clean']]
+    },
+    oblong: {
+      hair: [['Side part with volume','Sides pe width add'],['Fringe','Forehead chhota dikhta'],['Medium textured','Lambai balance']],
+      beard: [['Full beard','Chin neeche length kam'],['Short boxed beard','Width add karta'],['Mustache + stubble','Center heavy karta']],
+      sun: [['Oversized square','Face short dikhta'],['Wayfarer','Width add'],['Big aviator','Balanced fit']],
+      eye: [['Oversized rectangular','Lambai kam dikhti'],['Browline','Horizontal structure'],['Round','Width aur softness']]
+    },
+    heart: {
+      hair: [['Side swept','Forehead cover karta'],['Textured, jaw pe volume','Narrow chin balance'],['Layered mid length','Soft lines']],
+      beard: [['Goatee','Chin pe focus'],['Full beard, fuller chin','Jaw ko width'],['Short boxed','Chin define']],
+      sun: [['Aviator','Bottom heavy, balance'],['Round bottom-heavy','Narrow chin ke liye'],['Browline','Forehead balance']],
+      eye: [['Metal aviator','Chin balance'],['Rimless','Light forehead'],['Oval','Soft aur balanced']]
+    },
+    diamond: {
+      hair: [['Side-swept fringe','Forehead soft'],['Textured top volume','Narrow forehead balance'],['Layered medium','Cheek focus kam']],
+      beard: [['Full beard','Narrow jaw ko width'],['Stubble + fuller chin','Jaw balance'],['Short boxed','Angles define']],
+      sun: [['Oval','Cheekbone soft'],['Round','Curves'],['Browline','Forehead define']],
+      eye: [['Oval','Soft curves'],['Rimless','Light look'],['Aviator','Balance']]
+    }
+  },
+  woman: {
+    oval: {
+      hair: [['Long layers','Almost sab pe suit'],['Bob','Clean look'],['Pixie','Bold choice']],
+      sun: [['Cat-eye','Trendy aur flattering'],['Aviator','Classic'],['Oversized round','Fun look']],
+      eye: [['Rectangular','Balance'],['Cat-eye','Feminine lift'],['Round','Soft look']]
+    },
+    round: {
+      hair: [['Long layers with top volume','Lambai dikhti'],['Side-swept bangs','Width kam'],['Asymmetric bob','Angles add']],
+      sun: [['Rectangular','Width balance'],['Cat-eye','Upward angle'],['Square','Contrast']],
+      eye: [['Rectangular','Angles add'],['Cat-eye','Lift deta'],['Browline','Structure']]
+    },
+    square: {
+      hair: [['Soft waves','Jaw soft karti'],['Side-swept layers','Angles break'],['Long layers','Length, soft']],
+      sun: [['Round','Angles ka ulta'],['Oval','Soft curves'],['Aviator','Light']],
+      eye: [['Round','Soft'],['Oval','Gentle'],['Rimless','Light']]
+    },
+    oblong: {
+      hair: [['Chin-length bob','Lambai kam dikhti'],['Bangs / fringe','Forehead chhota'],['Volume at sides','Width add']],
+      sun: [['Oversized','Face short dikhta'],['Cat-eye','Width add'],['Round oversized','Soft look']],
+      eye: [['Oversized','Balance'],['Decorative browline','Horizontal lines'],['Round','Width']]
+    },
+    heart: {
+      hair: [['Chin-length bob','Jaw ke paas volume'],['Side bangs','Forehead cover'],['Layered lob','Soft lines']],
+      sun: [['Aviator','Bottom heavy'],['Round','Balance'],['Bottom-heavy cat-eye','Chin balance']],
+      eye: [['Bottom-heavy frames','Balance'],['Rimless','Light'],['Oval','Soft']]
+    },
+    diamond: {
+      hair: [['Side-swept bangs','Forehead soft'],['Layered lob','Chin pe volume'],['Textured shag','Cheek focus kam']],
+      sun: [['Oval','Soft'],['Cat-eye','Lift'],['Browline','Forehead define']],
+      eye: [['Oval','Curves'],['Rimless','Light'],['Cat-eye','Upward']]
+    }
+  }
+};
+
+let gender = 'man', mode = null, scanning = false, looping = false, busy = false;
+let samples = [], shape = null, faceMesh = null;
+const picks = {};
+
+if (typeof FaceMesh === 'undefined') {
+  setTimeout(() => setStatus('AI load nahi hua. Niche se apna shape khud chuno.'), 0);
+  $('#camBtn').disabled = true;
+}
+
+const setStatus = t => { $('#status').textContent = t; };
+const showLoader = t => setStatus(t);
+const hideLoader = () => {};
+const setProgress = p => { ring.style.strokeDashoffset = C * (1 - Math.min(1, p)); };
+
+function getMesh(){
+  if (faceMesh) return faceMesh;
+  faceMesh = new FaceMesh({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${f}` });
+  faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+  faceMesh.onResults(onResults);
+  return faceMesh;
+}
+
+// Ratios relative to cheek width, so distance from camera doesn't matter
+function measure(f, w, h){
+  const d = (a, b) => Math.hypot((f[a].x - f[b].x) * w, (f[a].y - f[b].y) * h);
+  const cheek = d(234, 454);
+  return { length: d(10, 152) / cheek, jaw: d(172, 397) / cheek, forehead: d(54, 284) / cheek };
+}
+
+function classify(m){
+  const L = m.length, J = m.jaw, F = m.forehead;
+  if (L >= 1.55) return 'oblong';
+  if (F < 0.82 && J < 0.82) return 'diamond';
+  if (F >= 0.88 && J <= 0.78) return 'heart';
+  if (L < 1.3) return J >= 0.9 ? 'square' : 'round';
+  if (J >= 0.9 && L < 1.4) return 'square';
+  return 'oval';
+}
+
+function onResults(res){
+  hideLoader();
+  const f = res.multiFaceLandmarks && res.multiFaceLandmarks[0];
+  const w = mode === 'photo' ? photo.naturalWidth : video.videoWidth;
+  const h = mode === 'photo' ? photo.naturalHeight : video.videoHeight;
+  if (!f){
+    if (scanning) setStatus('Face nahi mila. Camera ke saamne aao.');
+    else if (mode === 'photo') setStatus('Is photo mein face nahi mila. Seedhi, saaf photo try karo.');
+    return;
+  }
+  const m = measure(f, w, h);
+  if (mode === 'photo') return finish([m]);
+  if (scanning){
+    samples.push(m);
+    setProgress(samples.length / 30);
+    setStatus(`Scan ho raha hai… ${Math.min(samples.length, 30)}/30`);
+    if (samples.length >= 30){ scanning = false; finish(samples); }
+  }
+}
+
+function finish(list){
+  const avg = { length: 0, jaw: 0, forehead: 0 };
+  list.forEach(m => { avg.length += m.length; avg.jaw += m.jaw; avg.forehead += m.forehead; });
+  for (const k in avg) avg[k] /= list.length;
+  shape = classify(avg);
+  setProgress(1);
+  $('#scanner').classList.remove('active');
+  setStatus('Ho gaya ✨ Neeche aapke liye suggestions hain.');
+  $('#scanBtn').disabled = false;
+  $('#scanBtn').textContent = 'Dobara scan karo';
+  render();
+  $('#out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function startCam(){
+  if (typeof FaceMesh === 'undefined') return setStatus('Library load nahi hui. Internet check karo, page refresh karo.');
+  try{
+    showLoader('Camera on ho raha hai…');
+    const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    video.srcObject = s; video.hidden = false; photo.hidden = true; $('#ph').hidden = true;
+    await video.play();
+    mode = 'cam';
+    getMesh();
+    $('#camBtn').textContent = 'Camera chal raha hai';
+    $('#camBtn').disabled = true;
+    $('#scanBtn').disabled = false;
+    setStatus('Seedha dekho, phir "Scan karo" dabao.');
+  }catch(e){
+    busy = false; hideLoader();
+    setStatus('Camera nahi chala (' + e.name + '). Browser mein camera allow karo, ya photo upload karo.');
+  }
+}
+
+let watchdog = null;
+function startScan(){
+  if (!video.srcObject) return;
+  scanning = true; samples = []; shape = null;
+  clearTimeout(watchdog);
+  watchdog = setTimeout(() => {
+    if (scanning && samples.length === 0) setStatus('AI model abhi tak load nahi hua. Page refresh karo, ya neeche se shape khud chuno.');
+  }, 20000);
+  setProgress(0);
+  $('#out').innerHTML = '';
+  $('#scanner').classList.add('active');
+  $('#scanBtn').disabled = true;
+  setStatus('Seedha dekho… scan ho raha hai');
+  if (!looping){ looping = true; loop(); }
+}
+
+async function loop(){
+  if (!scanning){ looping = false; return; }
+  if (!busy && video.readyState >= 2){
+    busy = true;
+    try{ await faceMesh.send({ image: video }); }catch(e){ setStatus('Error: ' + e.message); }
+    busy = false;
+  }
+  requestAnimationFrame(loop);
+}
+
+$('#file').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (typeof FaceMesh === 'undefined') return setStatus('Library load nahi hui. Page refresh karo.');
+  scanning = false;
+  $('#scanner').classList.remove('active');
+  if (video.srcObject){ video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+  video.hidden = true; photo.hidden = false; $('#ph').hidden = true;
+  photo.src = URL.createObjectURL(f);
+  mode = 'photo';
+  $('#camBtn').disabled = false; $('#camBtn').textContent = 'Camera on';
+  $('#scanBtn').disabled = true;
+  showLoader('Photo check ho rahi hai…');
+});
+
+photo.onload = async () => {
+  if (mode !== 'photo') return;
+  getMesh();
+  try{ await faceMesh.send({ image: photo }); }
+  catch(err){ hideLoader(); setStatus('Photo process nahi hui (' + err.message + '). Neeche se shape khud chuno.'); }
+};
+
+function pickShape(s){
+  scanning = false;
+  shape = s;
+  setProgress(1);
+  $('#scanner').classList.remove('active');
+  $('#scanBtn').disabled = false;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.s === s));
+  setStatus(`Shape chuna: ${LAB[s]}`);
+  render();
+  $('#out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setGender(g){
+  gender = g;
+  $('#gM').classList.toggle('on', g === 'man');
+  $('#gW').classList.toggle('on', g === 'woman');
+  render();
+}
+
+function pick(cat, i){
+  const k = gender + shape + cat;
+  picks[k] = picks[k] === i ? undefined : i;
+  render();
+}
+
+function render(){
+  if (!shape){ $('#out').innerHTML = ''; return; }
+  const cats = gender === 'man' ? ['hair','beard','sun','eye'] : ['hair','sun','eye'];
+  let html = `
+    <div class="hero">
+      <small>Aapka face shape</small>
+      <h2>${LAB[shape]}</h2>
+      <p>${DESC[shape]}</p>
+    </div>`;
+  cats.forEach((cat, ci) => {
+    html += `<div class="sec" style="animation-delay:${ci * 0.08}s"><h3>${TITLE[cat]}</h3><div class="cards">`;
+    DATA[gender][shape][cat].forEach(([name, why], i) => {
+      const sel = picks[gender + shape + cat] === i ? ' sel' : '';
+      html += `<div class="opt${sel}" onclick="pick('${cat}', ${i})"><b>${name}</b><span>${why}</span></div>`;
+    });
+    html += `</div></div>`;
+  });
+  $('#out').innerHTML = html;
+}
+</script>
+</body>
+</html>
