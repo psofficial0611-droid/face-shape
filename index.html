@@ -1,219 +1,263 @@
-<!DOCTYPE html>
-<html lang="hi">
+ <!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e0b12">
+<meta name="theme-color" content="#0b1020">
+<meta name="description" content="Find your face shape with your camera and get personalised hairstyle, beard, sunglasses and eyeglasses recommendations.">
 <title>Face Style Finder</title>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
 <style>
 [hidden]{display:none!important}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--bg:#0e0b12;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.12);--ink:#f6f1ff;--mute:#a79cb8;--g1:#ff8a5b;--g2:#ff4d8d}
-html,body{margin:0;min-height:100%;background:radial-gradient(900px 500px at 50% -180px,#3d1a3a,transparent),var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 18px calc(env(safe-area-inset-bottom,0px) + 36px)}
-header h1{font-size:28px;margin:4px 0 2px;font-weight:800;background:linear-gradient(90deg,var(--g1),var(--g2));-webkit-background-clip:text;background-clip:text;color:transparent}
-header p{margin:0;color:var(--mute);font-size:14px}
-.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px;margin:18px 0 16px}
-.seg button{flex:1;border:0;background:none;color:var(--mute);padding:10px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;transition:.25s}
-.seg button.on{background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff;box-shadow:0 6px 20px -6px var(--g2)}
-.scanner{position:relative;width:272px;height:272px;margin:0 auto}
-.scanner svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+:root{--bg:#0b1020;--surface:#121a2e;--surface-2:#182139;--line:rgba(255,255,255,.08);--text:#eef2ff;--muted:#8b95b2;--a1:#7c5cff;--a2:#22d3ee;--r:20px}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;background:radial-gradient(900px 560px at 10% -10%,rgba(124,92,255,.22),transparent 60%),radial-gradient(800px 520px at 100% 0%,rgba(34,211,238,.12),transparent 60%),var(--bg)}
+.wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 16px) 18px calc(env(safe-area-inset-bottom,0px) + 40px)}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--a1),var(--a2));display:grid;place-items:center;font-weight:800;color:#fff}
+.pill{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:6px 11px;border-radius:999px}
+.hero h1{font-size:30px;line-height:1.15;margin:0 0 8px;font-weight:800;letter-spacing:-.02em}
+.hero h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{margin:0;color:var(--muted);font-size:15px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:22px 0 16px}
+.step{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.step i{display:block;height:4px;border-radius:4px;background:var(--surface-2)}
+.step.done i,.step.on i{background:linear-gradient(90deg,var(--a1),var(--a2))}
+.step.on{color:var(--text);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.card-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px}
+.card-h h2{font-size:15px;margin:0;font-weight:700}
+.card-h small{color:var(--muted);font-size:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface-2);border-radius:14px;padding:4px}
+.seg button{border:0;background:transparent;color:var(--muted);padding:11px;border-radius:11px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.seg button.on{background:#fff;color:#0b1020}
+.viewer{position:relative;width:min(260px,78vw);aspect-ratio:1;margin:4px auto 14px}
+.viewer svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
 .track{stroke:var(--line)}
-.prog{stroke:url(#gr);stroke-linecap:round;transition:stroke-dashoffset .25s ease}
-.feed{position:absolute;inset:16px;border-radius:50%;overflow:hidden;background:#17121d;box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
+.prog{stroke:url(#g);stroke-linecap:round;transition:stroke-dashoffset .25s ease}
+.feed{position:absolute;inset:14px;border-radius:50%;overflow:hidden;background:#0a0f1d}
 .feed video,.feed img{width:100%;height:100%;object-fit:cover;display:block}
 .feed video{transform:scaleX(-1)}
-.ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--mute);font-size:13px;gap:8px;text-align:center;padding:0 40px}
-.ph b{font-size:46px;line-height:1}
-.scanner.active .feed::after{content:"";position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--g2),transparent);box-shadow:0 0 12px var(--g2);animation:sweep 1.8s ease-in-out infinite}
+.placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px;gap:12px;padding:0 36px}
+.placeholder .ico{width:52px;height:52px;border-radius:16px;background:var(--surface-2);display:grid;place-items:center;color:var(--text)}
+.viewer.scanning .feed::after{content:"";position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--a2),transparent);box-shadow:0 0 14px var(--a2);animation:sweep 1.8s ease-in-out infinite}
 @keyframes sweep{0%{top:0}50%{top:100%}100%{top:0}}
-.status{text-align:center;color:var(--mute);font-size:14px;min-height:22px;margin:16px 0 14px}
-.btn{width:100%;border:0;border-radius:16px;padding:16px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--g1),var(--g2));box-shadow:0 10px 30px -10px var(--g2);cursor:pointer;transition:transform .15s,opacity .2s}
+.status{text-align:center;color:var(--muted);font-size:14px;min-height:22px;margin:14px 0 6px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:block;text-align:center;border:1px solid var(--line);background:var(--surface-2);color:var(--text);border-radius:14px;padding:14px 12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s,opacity .2s}
 .btn:active{transform:scale(.98)}
-.btn.ghost{background:var(--panel);border:1px solid var(--line);box-shadow:none}
+.btn.primary{background:linear-gradient(90deg,var(--a1),var(--a2));border-color:transparent;color:#fff;box-shadow:0 12px 30px -14px rgba(124,92,255,.9)}
 .btn:disabled{opacity:.4;cursor:default}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.upload{display:block;text-align:center;color:var(--mute);font-size:14px;margin-top:14px;text-decoration:underline;cursor:pointer}
+.full{grid-column:1/-1}
 .upload input{display:none}
-.manual{margin-top:20px;text-align:center}
-.manual p{color:var(--mute);font-size:13px;margin:0 0 10px;line-height:1.5}
-.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:9px 16px;font-size:14px;cursor:pointer;transition:.2s}
-.chip.on{border-color:var(--g2);background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff}
-.hero{background:linear-gradient(135deg,rgba(255,138,91,.2),rgba(255,77,141,.12));border:1px solid var(--line);border-radius:22px;padding:20px;margin:26px 0 6px;animation:up .5s ease}
-.hero small{color:var(--mute);text-transform:uppercase;letter-spacing:.14em;font-size:11px}
-.hero h2{margin:4px 0 6px;font-size:32px}
-.hero p{margin:0;color:var(--mute);font-size:14px;line-height:1.5}
-.sec{margin-top:22px;animation:up .5s ease both}
-.sec h3{font-size:16px;margin:0 0 10px}
-.cards{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory;scrollbar-width:none}
-.cards::-webkit-scrollbar{display:none}
-.opt{flex:0 0 168px;scroll-snap-align:start;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;cursor:pointer;transition:transform .15s,border-color .2s,background .2s}
-.opt:active{transform:scale(.97)}
-.opt b{display:block;margin:8px 0 4px;font-size:15px}
-.opt span{color:var(--mute);font-size:12.5px;line-height:1.4}
-.opt.sel{border-color:var(--g2);background:linear-gradient(160deg,rgba(255,138,91,.22),rgba(255,77,141,.12));box-shadow:0 10px 26px -14px var(--g2)}
-.opt.sel::after{content:"✓";float:right;color:var(--g2);font-weight:800}
-.foot{text-align:center;color:var(--mute);font-size:12px;margin-top:28px;line-height:1.5}
-@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.shape-pick{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.shape-pick p{margin:0 0 10px;color:var(--muted);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface-2);color:var(--text);border-radius:999px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--a1);border-color:var(--a1);color:#fff}
+.result{background:linear-gradient(135deg,rgba(124,92,255,.24),rgba(34,211,238,.10));border:1px solid rgba(124,92,255,.3);border-radius:var(--r);padding:20px;margin:18px 0 14px;animation:up .45s ease}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.result h2{font-size:36px;margin:4px 0 6px;letter-spacing:-.02em}
+.result p{margin:0;color:#c9d1ea;font-size:14px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.metric{background:rgba(0,0,0,.25);border-radius:14px;padding:10px;text-align:center}
+.metric b{display:block;font-size:17px}
+.metric span{font-size:11px;color:var(--muted)}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:9px 16px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.tab.on{color:var(--text);background:var(--surface-2);border-color:rgba(124,92,255,.6)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{display:block;text-align:left;font-family:inherit;color:inherit;background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:14px;cursor:pointer;transition:border-color .2s,transform .15s,background .2s}
+.opt:active{transform:scale(.98)}
+.opt b{display:block;font-size:15px;margin:6px 0 4px}
+.opt span{display:block;font-size:12.5px;color:var(--muted);line-height:1.45}
+.opt .rank{font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.opt.sel{border-color:var(--a2);background:linear-gradient(160deg,rgba(124,92,255,.18),rgba(34,211,238,.08))}
+.opt.sel .rank{color:var(--a2)}
+.foot{color:var(--muted);font-size:12px;text-align:center;margin-top:26px;line-height:1.6}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <h1>Face Style Finder</h1>
-    <p>Apna face shape jaano, phir uske liye best styles paao.</p>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="logo">F</div>Face Style Finder</div>
+    <span class="pill">Private, runs on your device</span>
   </header>
 
-  <div class="seg">
-    <button class="on" id="gM" onclick="setGender('man')">Men</button>
-    <button id="gW" onclick="setGender('woman')">Women</button>
+  <section class="hero">
+    <h1>Find the look that <span>fits your face</span></h1>
+    <p>Scan your face to get your face shape, plus hairstyle, beard and eyewear picks made for it.</p>
+  </section>
+
+  <div class="steps">
+    <div class="step on" id="st1"><i></i>Choose profile</div>
+    <div class="step" id="st2"><i></i>Scan face</div>
+    <div class="step" id="st3"><i></i>View styles</div>
   </div>
 
-  <div class="scanner" id="scanner">
-    <svg viewBox="0 0 272 272">
-      <defs>
-        <linearGradient id="gr" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#ff8a5b"/><stop offset="1" stop-color="#ff4d8d"/>
-        </linearGradient>
-      </defs>
-      <circle class="track" cx="136" cy="136" r="128" fill="none" stroke-width="6"/>
-      <circle class="prog" id="ring" cx="136" cy="136" r="128" fill="none" stroke-width="6" stroke-dasharray="804" stroke-dashoffset="804"/>
-    </svg>
-    <div class="feed">
-      <video id="video" playsinline muted hidden></video>
-      <img id="photo" alt="" hidden>
-      <div class="ph" id="ph"><b>📷</b>Camera on karo, ya photo upload karo</div>
+  <section class="card">
+    <div class="card-h"><h2>1. Choose profile</h2></div>
+    <div class="seg">
+      <button class="on" id="gM" onclick="setGender('man')">Men</button>
+      <button id="gW" onclick="setGender('woman')">Women</button>
     </div>
-  </div>
+  </section>
 
-  <div class="status" id="status">Seedha camera dekho, phir scan karo.</div>
-
-  <div class="row">
-    <button class="btn ghost" id="camBtn" onclick="startCam()">Camera on</button>
-    <button class="btn" id="scanBtn" onclick="startScan()" disabled>Scan karo</button>
-  </div>
-  <label class="upload">Ya apni photo upload karo<input type="file" accept="image/*" id="file"></label>
-
-  <div class="manual">
-    <p>Camera ya photo se kaam na bane? Apna shape khud chuno:</p>
-    <div class="chips">
-      <button class="chip" data-s="oval" onclick="pickShape('oval')">Oval</button>
-      <button class="chip" data-s="round" onclick="pickShape('round')">Round</button>
-      <button class="chip" data-s="square" onclick="pickShape('square')">Square</button>
-      <button class="chip" data-s="oblong" onclick="pickShape('oblong')">Oblong</button>
-      <button class="chip" data-s="heart" onclick="pickShape('heart')">Heart</button>
-      <button class="chip" data-s="diamond" onclick="pickShape('diamond')">Diamond</button>
+  <section class="card">
+    <div class="card-h"><h2>2. Scan your face</h2><small>About 3 seconds</small></div>
+    <div class="viewer" id="viewer">
+      <svg viewBox="0 0 260 260" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#22d3ee"/>
+          </linearGradient>
+        </defs>
+        <circle class="track" cx="130" cy="130" r="122" fill="none" stroke-width="5"/>
+        <circle class="prog" id="ring" cx="130" cy="130" r="122" fill="none" stroke-width="5" stroke-dasharray="767" stroke-dashoffset="767"/>
+      </svg>
+      <div class="feed">
+        <video id="video" playsinline muted hidden></video>
+        <img id="photo" alt="Your uploaded photo" hidden>
+        <div class="placeholder" id="ph">
+          <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
+          <div>Start the camera or upload a clear, front-facing photo</div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div id="out"></div>
+    <div class="status" id="status">Ready when you are.</div>
 
-  <p class="foot">Ye result approximate hai. Achhi roshni mein, seedha dekh kar scan karne se sahi aata hai.</p>
+    <div class="actions">
+      <button class="btn" id="camBtn" onclick="startCam()">Start camera</button>
+      <button class="btn primary" id="scanBtn" onclick="startScan()" disabled>Scan face</button>
+      <label class="btn full upload">Upload a photo<input type="file" accept="image/*" id="file"></label>
+    </div>
+
+    <div class="shape-pick">
+      <p>No camera? Choose your face shape directly:</p>
+      <div class="chips">
+        <button class="chip" data-s="oval" onclick="pickShape('oval')">Oval</button>
+        <button class="chip" data-s="round" onclick="pickShape('round')">Round</button>
+        <button class="chip" data-s="square" onclick="pickShape('square')">Square</button>
+        <button class="chip" data-s="oblong" onclick="pickShape('oblong')">Oblong</button>
+        <button class="chip" data-s="heart" onclick="pickShape('heart')">Heart</button>
+        <button class="chip" data-s="diamond" onclick="pickShape('diamond')">Diamond</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="result"></div>
+
+  <section class="card" id="histCard" hidden>
+    <div class="card-h"><h2>Recent scans</h2><small>Saved on this device</small></div>
+    <div class="chips" id="hist"></div>
+  </section>
+
+  <p class="foot">Photos are analysed on your device and are never uploaded. Results are style estimates, not medical or beauty advice.<br>Best results: face the camera straight on, in even light, with hair off your forehead.</p>
 </div>
 
 <script>
 const $ = s => document.querySelector(s);
 const video = $('#video'), photo = $('#photo'), ring = $('#ring');
-const C = 804;
-const TITLE = {hair:'💇 Hairstyle', beard:'🧔 Beard', sun:'🕶️ Sunglasses', eye:'👓 Eyeglasses'};
+const C = 767;
+const TITLE = {hair:'Hairstyles', beard:'Beard styles', sun:'Sunglasses', eye:'Eyeglasses'};
 const LAB = {oval:'Oval', round:'Round', square:'Square', oblong:'Oblong', heart:'Heart', diamond:'Diamond'};
 const DESC = {
-  oval: 'Sabse balanced shape. Lagbhag sab styles aap pe suit karte hain.',
-  round: 'Cheeks aur jaw soft hain. Length aur angles dene wale styles best lagte hain.',
-  square: 'Strong jaw aur chaudi forehead. Soft curves wale styles balance karte hain.',
-  oblong: 'Lamba face. Width add karne wale aur forehead/chin chhota dikhane wale options best hain.',
-  heart: 'Forehead chaudi, chin narrow. Bottom-heavy frames aur chin volume balance karte hain.',
-  diamond: 'Cheekbones sabse chaude. Forehead aur chin ko width dene wale styles best hain.'
+  oval: 'Balanced proportions. Most styles suit this shape well.',
+  round: 'Soft curves with similar width and length. Styles that add height and angles work best.',
+  square: 'Strong jawline and wide forehead. Soft layers and rounded frames balance the angles.',
+  oblong: 'A longer face with a narrow outline. Styles that add width and shorten the look work best.',
+  heart: 'Wide forehead and narrow chin. Volume near the jaw and bottom-heavy frames create balance.',
+  diamond: 'Prominent cheekbones with a narrower forehead and jaw. Width up top and at the chin works well.'
 };
 // [name, reason]
 const DATA = {
   man: {
     oval: {
-      hair: [['Textured crop','Sharp aur modern'],['Side part','Clean aur classic'],['Quiff','Thoda height, balance']],
-      beard: [['Stubble','Clean-cut look'],['Short boxed beard','Jawline define karti'],['Full beard','Oval pe balanced']],
-      sun: [['Aviator','Classic aur flattering'],['Wayfarer','Roz pehno, versatile'],['Round','Retro vibe']],
-      eye: [['Rectangular','Balance deta hai'],['Square','Bold look'],['Rimless','Light aur minimal']]
+      hair: [['Textured crop','Clean and modern, easy to maintain'],['Side part','Classic and polished'],['Quiff','Adds height and balance']],
+      beard: [['Stubble','Low maintenance, sharp definition'],['Short boxed beard','Defines the jawline'],['Full beard','Balances an oval face well']],
+      sun: [['Aviator','Timeless and flattering'],['Wayfarer','Versatile everyday style'],['Round','Retro look with soft lines']],
+      eye: [['Rectangular','Adds structure and balance'],['Square','Bold, confident look'],['Rimless','Light and minimal']]
     },
     round: {
-      hair: [['Quiff','Height se face lamba dikhta'],['Pompadour','Top volume, sides short'],['Textured top + short sides','Round shape slim dikhata']],
-      beard: [['Chinstrap','Jaw line lamba dikhati'],['Goatee','Chin pe length add'],['Boxed beard','Sharp edges']],
-      sun: [['Rectangular','Width balance karta'],['Wayfarer','Angular frames'],['Square','Contrast deta']],
-      eye: [['Rectangular','Angles add karta'],['Browline','Structure deta'],['Square','Sharp look']]
+      hair: [['Quiff','Adds height and lengthens the face'],['Pompadour','Volume on top, short sides'],['Textured top, short sides','Makes the face look slimmer']],
+      beard: [['Chinstrap','Adds length along the jawline'],['Goatee','Adds length at the chin'],['Boxed beard','Adds sharp edges']],
+      sun: [['Rectangular','Balances a wider face'],['Wayfarer','Strong angles contrast curves'],['Square','Adds contrast to soft features']],
+      eye: [['Rectangular','Adds angles and definition'],['Browline','Adds structure to the upper face'],['Square','Sharp, modern look']]
     },
     square: {
-      hair: [['Textured crop','Jaw ko soft karta'],['French crop','Forehead open dikhta'],['Medium swept back','Angles soften']],
-      beard: [['Stubble','Jaw soft karta'],['Rounded short beard','Angles neutralize'],['Full beard, round edges','Sharp jaw kam dikhta']],
-      sun: [['Round','Angles ka ulta contrast'],['Aviator','Soft curves'],['Oval','Balanced look']],
-      eye: [['Round','Angles ko soft karta'],['Oval','Gentle shape'],['Wire frame','Light aur clean']]
+      hair: [['Textured crop','Softens a strong jawline'],['French crop','Opens up the forehead'],['Medium swept back','Softens angular features']],
+      beard: [['Stubble','Softens the jaw'],['Rounded short beard','Softens angles'],['Full beard, rounded edges','Reduces a sharp jaw look']],
+      sun: [['Round','Contrasts strong angles'],['Aviator','Soft curves, good balance'],['Oval','Balanced, classic shape']],
+      eye: [['Round','Softens angular features'],['Oval','Gentle, balanced shape'],['Wire frame','Light and clean']]
     },
     oblong: {
-      hair: [['Side part with volume','Sides pe width add'],['Fringe','Forehead chhota dikhta'],['Medium textured','Lambai balance']],
-      beard: [['Full beard','Chin neeche length kam'],['Short boxed beard','Width add karta'],['Mustache + stubble','Center heavy karta']],
-      sun: [['Oversized square','Face short dikhta'],['Wayfarer','Width add'],['Big aviator','Balanced fit']],
-      eye: [['Oversized rectangular','Lambai kam dikhti'],['Browline','Horizontal structure'],['Round','Width aur softness']]
+      hair: [['Side part with volume','Adds width at the sides'],['Fringe','Shortens the forehead'],['Medium textured cut','Balances overall length']],
+      beard: [['Full beard','Shortens the look of the chin'],['Short boxed beard','Adds width'],['Moustache with stubble','Adds weight to the centre']],
+      sun: [['Oversized square','Shortens the face visually'],['Wayfarer','Adds width'],['Large aviator','Balanced fit']],
+      eye: [['Oversized rectangular','Reduces the look of length'],['Browline','Horizontal lines add width'],['Round','Adds width and softness']]
     },
     heart: {
-      hair: [['Side swept','Forehead cover karta'],['Textured, jaw pe volume','Narrow chin balance'],['Layered mid length','Soft lines']],
-      beard: [['Goatee','Chin pe focus'],['Full beard, fuller chin','Jaw ko width'],['Short boxed','Chin define']],
-      sun: [['Aviator','Bottom heavy, balance'],['Round bottom-heavy','Narrow chin ke liye'],['Browline','Forehead balance']],
-      eye: [['Metal aviator','Chin balance'],['Rimless','Light forehead'],['Oval','Soft aur balanced']]
+      hair: [['Side swept','Covers a wide forehead'],['Textured, volume at the jaw','Balances a narrow chin'],['Layered mid-length','Soft, balanced lines']],
+      beard: [['Goatee','Adds focus to the chin'],['Full beard, fuller chin','Adds width to the jaw'],['Short boxed beard','Defines the chin']],
+      sun: [['Aviator','Bottom-heavy shape balances the face'],['Round, bottom-heavy','Suits a narrow chin'],['Browline','Balances the forehead']],
+      eye: [['Metal aviator','Balances the chin'],['Rimless','Light on a wide forehead'],['Oval','Soft and balanced']]
     },
     diamond: {
-      hair: [['Side-swept fringe','Forehead soft'],['Textured top volume','Narrow forehead balance'],['Layered medium','Cheek focus kam']],
-      beard: [['Full beard','Narrow jaw ko width'],['Stubble + fuller chin','Jaw balance'],['Short boxed','Angles define']],
-      sun: [['Oval','Cheekbone soft'],['Round','Curves'],['Browline','Forehead define']],
-      eye: [['Oval','Soft curves'],['Rimless','Light look'],['Aviator','Balance']]
+      hair: [['Side-swept fringe','Softens a narrow forehead'],['Textured top volume','Balances the forehead'],['Layered medium cut','Reduces focus on the cheeks']],
+      beard: [['Full beard','Adds width to a narrow jaw'],['Stubble with fuller chin','Balances the jaw'],['Short boxed beard','Defines the angles']],
+      sun: [['Oval','Softens the cheekbones'],['Round','Adds curves'],['Browline','Defines the forehead']],
+      eye: [['Oval','Soft curves'],['Rimless','Light, minimal look'],['Aviator','Balanced fit']]
     }
   },
   woman: {
     oval: {
-      hair: [['Long layers','Almost sab pe suit'],['Bob','Clean look'],['Pixie','Bold choice']],
-      sun: [['Cat-eye','Trendy aur flattering'],['Aviator','Classic'],['Oversized round','Fun look']],
-      eye: [['Rectangular','Balance'],['Cat-eye','Feminine lift'],['Round','Soft look']]
+      hair: [['Long layers','Works with almost any face'],['Bob','Clean, modern look'],['Pixie','Bold, confident choice']],
+      sun: [['Cat-eye','Trendy and flattering'],['Aviator','Classic everyday style'],['Oversized round','Playful, fashion-forward']],
+      eye: [['Rectangular','Balanced and professional'],['Cat-eye','Adds a feminine lift'],['Round','Soft, approachable look']]
     },
     round: {
-      hair: [['Long layers with top volume','Lambai dikhti'],['Side-swept bangs','Width kam'],['Asymmetric bob','Angles add']],
-      sun: [['Rectangular','Width balance'],['Cat-eye','Upward angle'],['Square','Contrast']],
-      eye: [['Rectangular','Angles add'],['Cat-eye','Lift deta'],['Browline','Structure']]
+      hair: [['Long layers with top volume','Adds length to the face'],['Side-swept bangs','Reduces the width of the face'],['Asymmetric bob','Adds angles']],
+      sun: [['Rectangular','Balances the width'],['Cat-eye','Lifts the look upward'],['Square','Adds contrast']],
+      eye: [['Rectangular','Adds angles'],['Cat-eye','Lifts and defines'],['Browline','Adds structure']]
     },
     square: {
-      hair: [['Soft waves','Jaw soft karti'],['Side-swept layers','Angles break'],['Long layers','Length, soft']],
-      sun: [['Round','Angles ka ulta'],['Oval','Soft curves'],['Aviator','Light']],
-      eye: [['Round','Soft'],['Oval','Gentle'],['Rimless','Light']]
+      hair: [['Soft waves','Softens the jawline'],['Side-swept layers','Breaks up strong angles'],['Long layers','Adds length and softness']],
+      sun: [['Round','Contrasts strong angles'],['Oval','Soft curves'],['Aviator','Light and balanced']],
+      eye: [['Round','Softens the face'],['Oval','Gentle shape'],['Rimless','Light and modern']]
     },
     oblong: {
-      hair: [['Chin-length bob','Lambai kam dikhti'],['Bangs / fringe','Forehead chhota'],['Volume at sides','Width add']],
-      sun: [['Oversized','Face short dikhta'],['Cat-eye','Width add'],['Round oversized','Soft look']],
-      eye: [['Oversized','Balance'],['Decorative browline','Horizontal lines'],['Round','Width']]
+      hair: [['Chin-length bob','Shortens the look of the face'],['Bangs','Covers the forehead'],['Volume at the sides','Adds width']],
+      sun: [['Oversized','Shortens the face visually'],['Cat-eye','Adds width'],['Round oversized','Soft, balanced look']],
+      eye: [['Oversized','Balances the length'],['Decorative browline','Horizontal lines add width'],['Round','Adds width']]
     },
     heart: {
-      hair: [['Chin-length bob','Jaw ke paas volume'],['Side bangs','Forehead cover'],['Layered lob','Soft lines']],
-      sun: [['Aviator','Bottom heavy'],['Round','Balance'],['Bottom-heavy cat-eye','Chin balance']],
-      eye: [['Bottom-heavy frames','Balance'],['Rimless','Light'],['Oval','Soft']]
+      hair: [['Chin-length bob','Adds volume at the jaw'],['Side bangs','Covers a wide forehead'],['Layered lob','Soft lines']],
+      sun: [['Aviator','Bottom-heavy shape balances the face'],['Round','Balanced look'],['Bottom-heavy cat-eye','Balances the chin']],
+      eye: [['Bottom-heavy frames','Balances the face'],['Rimless','Light and modern'],['Oval','Soft and balanced']]
     },
     diamond: {
-      hair: [['Side-swept bangs','Forehead soft'],['Layered lob','Chin pe volume'],['Textured shag','Cheek focus kam']],
-      sun: [['Oval','Soft'],['Cat-eye','Lift'],['Browline','Forehead define']],
-      eye: [['Oval','Curves'],['Rimless','Light'],['Cat-eye','Upward']]
+      hair: [['Side-swept bangs','Softens the forehead'],['Layered lob','Adds volume at the chin'],['Textured shag','Reduces focus on the cheeks']],
+      sun: [['Oval','Soft shape'],['Cat-eye','Lifts the look'],['Browline','Defines the forehead']],
+      eye: [['Oval','Soft curves'],['Rimless','Light and minimal'],['Cat-eye','Adds upward lift']]
     }
   }
 };
 
-let gender = 'man', mode = null, scanning = false, looping = false, busy = false;
-let samples = [], shape = null, faceMesh = null;
+let gender = 'man', tab = 'hair', mode = null, scanning = false, looping = false, busy = false;
+let samples = [], shape = null, lastMetrics = null, faceMesh = null, watchdog = null;
 const picks = {};
-
-if (typeof FaceMesh === 'undefined') {
-  setTimeout(() => setStatus('AI load nahi hua. Niche se apna shape khud chuno.'), 0);
-  $('#camBtn').disabled = true;
-}
+const HKEY = 'fsf_history';
 
 const setStatus = t => { $('#status').textContent = t; };
-const showLoader = t => setStatus(t);
-const hideLoader = () => {};
 const setProgress = p => { ring.style.strokeDashoffset = C * (1 - Math.min(1, p)); };
+const syncGender = () => { $('#gM').classList.toggle('on', gender === 'man'); $('#gW').classList.toggle('on', gender === 'woman'); };
+function setStep(n){ [1,2,3].forEach(i => { const el = $('#st' + i); el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); }); }
 
 function getMesh(){
   if (faceMesh) return faceMesh;
@@ -223,7 +267,7 @@ function getMesh(){
   return faceMesh;
 }
 
-// Ratios relative to cheek width, so distance from camera doesn't matter
+// Ratios relative to cheek width, so distance from the camera does not matter
 function measure(f, w, h){
   const d = (a, b) => Math.hypot((f[a].x - f[b].x) * w, (f[a].y - f[b].y) * h);
   const cheek = d(234, 454);
@@ -241,13 +285,12 @@ function classify(m){
 }
 
 function onResults(res){
-  hideLoader();
   const f = res.multiFaceLandmarks && res.multiFaceLandmarks[0];
   const w = mode === 'photo' ? photo.naturalWidth : video.videoWidth;
   const h = mode === 'photo' ? photo.naturalHeight : video.videoHeight;
   if (!f){
-    if (scanning) setStatus('Face nahi mila. Camera ke saamne aao.');
-    else if (mode === 'photo') setStatus('Is photo mein face nahi mila. Seedhi, saaf photo try karo.');
+    if (scanning) setStatus('No face found. Move closer to the camera.');
+    else if (mode === 'photo') setStatus('No face found in this photo. Try a clear, front-facing photo.');
     return;
   }
   const m = measure(f, w, h);
@@ -255,7 +298,7 @@ function onResults(res){
   if (scanning){
     samples.push(m);
     setProgress(samples.length / 30);
-    setStatus(`Scan ho raha hai… ${Math.min(samples.length, 30)}/30`);
+    setStatus(`Scanning… ${Math.min(samples.length, 30)} of 30`);
     if (samples.length >= 30){ scanning = false; finish(samples); }
   }
 }
@@ -264,48 +307,49 @@ function finish(list){
   const avg = { length: 0, jaw: 0, forehead: 0 };
   list.forEach(m => { avg.length += m.length; avg.jaw += m.jaw; avg.forehead += m.forehead; });
   for (const k in avg) avg[k] /= list.length;
+  lastMetrics = avg;
   shape = classify(avg);
   setProgress(1);
-  $('#scanner').classList.remove('active');
-  setStatus('Ho gaya ✨ Neeche aapke liye suggestions hain.');
-  $('#scanBtn').disabled = false;
-  $('#scanBtn').textContent = 'Dobara scan karo';
+  $('#viewer').classList.remove('scanning');
+  $('#scanBtn').disabled = !video.srcObject;
+  saveHist(shape);
+  setStep(3);
+  setStatus('Done. Your results are below.');
   render();
-  $('#out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function startCam(){
-  if (typeof FaceMesh === 'undefined') return setStatus('Library load nahi hui. Internet check karo, page refresh karo.');
+  if (typeof FaceMesh === 'undefined') return setStatus('The face model did not load. Check your connection and refresh.');
   try{
-    showLoader('Camera on ho raha hai…');
+    setStatus('Starting camera…');
     const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
     video.srcObject = s; video.hidden = false; photo.hidden = true; $('#ph').hidden = true;
     await video.play();
     mode = 'cam';
     getMesh();
-    $('#camBtn').textContent = 'Camera chal raha hai';
+    $('#camBtn').textContent = 'Camera on';
     $('#camBtn').disabled = true;
     $('#scanBtn').disabled = false;
-    setStatus('Seedha dekho, phir "Scan karo" dabao.');
+    setStep(2);
+    setStatus('Look straight at the camera, then tap Scan face.');
   }catch(e){
-    busy = false; hideLoader();
-    setStatus('Camera nahi chala (' + e.name + '). Browser mein camera allow karo, ya photo upload karo.');
+    setStatus('Camera unavailable (' + e.name + '). Allow camera access or upload a photo.');
   }
 }
 
-let watchdog = null;
 function startScan(){
   if (!video.srcObject) return;
-  scanning = true; samples = []; shape = null;
+  scanning = true; samples = []; shape = null; lastMetrics = null;
   clearTimeout(watchdog);
   watchdog = setTimeout(() => {
-    if (scanning && samples.length === 0) setStatus('AI model abhi tak load nahi hua. Page refresh karo, ya neeche se shape khud chuno.');
+    if (scanning && samples.length === 0) setStatus('The face model is taking too long to load. Refresh the page or choose your shape below.');
   }, 20000);
   setProgress(0);
-  $('#out').innerHTML = '';
-  $('#scanner').classList.add('active');
+  $('#result').innerHTML = '';
+  $('#viewer').classList.add('scanning');
   $('#scanBtn').disabled = true;
-  setStatus('Seedha dekho… scan ho raha hai');
+  setStatus('Hold still… scanning');
   if (!looping){ looping = true; loop(); }
 }
 
@@ -319,46 +363,58 @@ async function loop(){
   requestAnimationFrame(loop);
 }
 
+function startOver(){
+  shape = null; lastMetrics = null;
+  $('#result').innerHTML = '';
+  setStep(video.srcObject || mode === 'photo' ? 2 : 1);
+  if (video.srcObject) return startScan();
+  setStatus('Start the camera or upload a photo to scan again.');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 $('#file').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
-  if (typeof FaceMesh === 'undefined') return setStatus('Library load nahi hui. Page refresh karo.');
+  if (typeof FaceMesh === 'undefined') return setStatus('The face model did not load. Refresh the page.');
   scanning = false;
-  $('#scanner').classList.remove('active');
+  $('#viewer').classList.remove('scanning');
   if (video.srcObject){ video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
   video.hidden = true; photo.hidden = false; $('#ph').hidden = true;
   photo.src = URL.createObjectURL(f);
   mode = 'photo';
-  $('#camBtn').disabled = false; $('#camBtn').textContent = 'Camera on';
+  $('#camBtn').disabled = false; $('#camBtn').textContent = 'Start camera';
   $('#scanBtn').disabled = true;
-  showLoader('Photo check ho rahi hai…');
+  setStep(2);
+  setStatus('Analysing your photo…');
+  e.target.value = '';
 });
 
 photo.onload = async () => {
   if (mode !== 'photo') return;
   getMesh();
   try{ await faceMesh.send({ image: photo }); }
-  catch(err){ hideLoader(); setStatus('Photo process nahi hui (' + err.message + '). Neeche se shape khud chuno.'); }
+  catch(err){ setStatus('Could not process this photo (' + err.message + '). Choose your shape below.'); }
 };
 
 function pickShape(s){
   scanning = false;
-  shape = s;
+  shape = s; lastMetrics = null;
   setProgress(1);
-  $('#scanner').classList.remove('active');
-  $('#scanBtn').disabled = false;
-  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.s === s));
-  setStatus(`Shape chuna: ${LAB[s]}`);
+  $('#viewer').classList.remove('scanning');
+  document.querySelectorAll('.chip[data-s]').forEach(c => c.classList.toggle('on', c.dataset.s === s));
+  setStep(3);
+  setStatus('Shape selected: ' + LAB[s] + '.');
   render();
-  $('#out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function setGender(g){
   gender = g;
-  $('#gM').classList.toggle('on', g === 'man');
-  $('#gW').classList.toggle('on', g === 'woman');
+  syncGender();
   render();
 }
+
+function setTab(c){ tab = c; render(); }
 
 function pick(cat, i){
   const k = gender + shape + cat;
@@ -367,23 +423,127 @@ function pick(cat, i){
 }
 
 function render(){
-  if (!shape){ $('#out').innerHTML = ''; return; }
+  const box = $('#result');
+  if (!shape){ box.innerHTML = ''; return; }
   const cats = gender === 'man' ? ['hair','beard','sun','eye'] : ['hair','sun','eye'];
-  let html = `
-    <div class="hero">
-      <small>Aapka face shape</small>
+  if (!cats.includes(tab)) tab = 'hair';
+  const m = lastMetrics;
+  const metrics = m ? `<div class="metrics">
+      <div class="metric"><b>${m.length.toFixed(2)}</b><span>Length</span></div>
+      <div class="metric"><b>${m.jaw.toFixed(2)}</b><span>Jaw</span></div>
+      <div class="metric"><b>${m.forehead.toFixed(2)}</b><span>Forehead</span></div>
+    </div>` : '';
+  const items = DATA[gender][shape][tab];
+  const cur = picks[gender + shape + tab];
+  box.innerHTML = `
+    <div class="result">
+      <div class="eyebrow">Your face shape</div>
       <h2>${LAB[shape]}</h2>
       <p>${DESC[shape]}</p>
-    </div>`;
-  cats.forEach((cat, ci) => {
-    html += `<div class="sec" style="animation-delay:${ci * 0.08}s"><h3>${TITLE[cat]}</h3><div class="cards">`;
-    DATA[gender][shape][cat].forEach(([name, why], i) => {
-      const sel = picks[gender + shape + cat] === i ? ' sel' : '';
-      html += `<div class="opt${sel}" onclick="pick('${cat}', ${i})"><b>${name}</b><span>${why}</span></div>`;
-    });
-    html += `</div></div>`;
+      ${metrics}
+    </div>
+    <div class="tools">
+      <button class="btn" onclick="downloadCard()">Download card</button>
+      ${navigator.share ? '<button class="btn" onclick="shareResult()">Share</button>' : ''}
+      <button class="btn" onclick="startOver()">Scan again</button>
+    </div>
+    <section class="card">
+      <div class="card-h"><h2>Recommended for you</h2><small>${gender === 'man' ? 'Men' : 'Women'}</small></div>
+      <div class="tabs">${cats.map(c => `<button class="tab${c === tab ? ' on' : ''}" onclick="setTab('${c}')">${TITLE[c]}</button>`).join('')}</div>
+      <div class="grid">${items.map(([n, t], i) => `<button class="opt${cur === i ? ' sel' : ''}" onclick="pick('${tab}', ${i})"><span class="rank">${String(i + 1).padStart(2, '0')}</span><b>${n}</b><span>${t}</span></button>`).join('')}</div>
+    </section>`;
+}
+
+function wrapText(ctx, text, x, y, maxW, lh){
+  const words = text.split(' '); let line = '';
+  for (const w of words){
+    const test = line + w + ' ';
+    if (ctx.measureText(test).width > maxW && line){ ctx.fillText(line.trim(), x, y); line = w + ' '; y += lh; }
+    else line = test;
+  }
+  ctx.fillText(line.trim(), x, y);
+}
+
+function downloadCard(){
+  const c = document.createElement('canvas');
+  c.width = 1080; c.height = 1350;
+  const x = c.getContext('2d');
+  const bg = x.createLinearGradient(0, 0, 1080, 1350);
+  bg.addColorStop(0, '#141b33'); bg.addColorStop(1, '#0b1020');
+  x.fillStyle = bg; x.fillRect(0, 0, 1080, 1350);
+  const acc = x.createLinearGradient(80, 0, 400, 0);
+  acc.addColorStop(0, '#7c5cff'); acc.addColorStop(1, '#22d3ee');
+  x.fillStyle = acc; x.fillRect(80, 120, 160, 8);
+  x.fillStyle = '#8b95b2'; x.font = '600 34px Arial, sans-serif'; x.fillText('FACE STYLE FINDER', 80, 190);
+  x.font = '500 34px Arial, sans-serif'; x.fillText('Your face shape', 80, 320);
+  x.fillStyle = '#ffffff'; x.font = '800 150px Arial, sans-serif'; x.fillText(LAB[shape], 80, 470);
+  x.fillStyle = '#c9d1ea'; x.font = '400 36px Arial, sans-serif';
+  wrapText(x, DESC[shape], 80, 540, 920, 50);
+  const cats = gender === 'man' ? ['hair','beard','sun','eye'] : ['hair','sun','eye'];
+  let y = 660;
+  cats.forEach(cat => {
+    const item = DATA[gender][shape][cat][picks[gender + shape + cat] ?? 0];
+    x.fillStyle = '#8b95b2'; x.font = '600 28px Arial, sans-serif'; x.fillText(TITLE[cat].toUpperCase(), 80, y);
+    x.fillStyle = '#ffffff'; x.font = '700 48px Arial, sans-serif'; x.fillText(item[0], 80, y + 60);
+    x.fillStyle = '#8b95b2'; x.font = '400 30px Arial, sans-serif'; x.fillText(item[1], 80, y + 102);
+    y += 135;
   });
-  $('#out').innerHTML = html;
+  x.fillStyle = '#8b95b2'; x.font = '400 26px Arial, sans-serif';
+  x.fillText('Scanned on your device. Style estimate only.', 80, 1270);
+  c.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'face-style-card.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }, 'image/png');
+}
+
+async function shareResult(){
+  try{
+    await navigator.share({
+      title: 'Face Style Finder',
+      text: `My face shape is ${LAB[shape]}. Find your best hairstyle and eyewear with Face Style Finder.`,
+      url: location.href
+    });
+  }catch(e){}
+}
+
+function loadHist(){
+  try{ return JSON.parse(localStorage.getItem(HKEY)) || []; }catch(e){ return []; }
+}
+
+function saveHist(s){
+  const list = [{ shape: s, gender, t: Date.now() }, ...loadHist()].slice(0, 6);
+  try{ localStorage.setItem(HKEY, JSON.stringify(list)); }catch(e){}
+  renderHist();
+}
+
+function renderHist(){
+  const list = loadHist();
+  $('#histCard').hidden = list.length === 0;
+  $('#hist').innerHTML = list.map((h, i) =>
+    `<button class="chip" onclick="loadPast(${i})">${LAB[h.shape]} · ${h.gender === 'man' ? 'Men' : 'Women'} · ${new Date(h.t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</button>`
+  ).join('');
+}
+
+function loadPast(i){
+  const h = loadHist()[i];
+  if (!h) return;
+  shape = h.shape; lastMetrics = null;
+  setStep(3);
+  gender = h.gender;
+  syncGender();
+  render();
+  $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Start-up
+setStep(1);
+renderHist();
+if (typeof FaceMesh === 'undefined'){
+  setStatus('The face model did not load. Choose your shape below, or refresh the page.');
+  $('#camBtn').disabled = true;
 }
 </script>
 </body>
