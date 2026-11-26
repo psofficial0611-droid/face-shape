@@ -1,10 +1,10 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1020">
-<meta name="description" content="Find your face shape with your camera and get personalised hairstyle, beard, sunglasses and eyeglasses recommendations.">
+<meta name="description" content="Find your face shape with your camera and get personalised hairstyle, beard, sunglasses and eyewear recommendations.">
 <title>Face Style Finder</title>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
 <style>
@@ -22,8 +22,8 @@ body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-ap
 .hero h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .hero p{margin:0;color:var(--muted);font-size:15px}
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:22px 0 16px}
-.step{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
-.step i{display:block;height:4px;border-radius:4px;background:var(--surface-2)}
+.step{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px;transition:color .3s}
+.step i{display:block;height:4px;border-radius:4px;background:var(--surface-2);transition:background .4s}
 .step.done i,.step.on i{background:linear-gradient(90deg,var(--a1),var(--a2))}
 .step.on{color:var(--text);font-weight:600}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px}
@@ -31,17 +31,25 @@ body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-ap
 .card-h h2{font-size:15px;margin:0;font-weight:700}
 .card-h small{color:var(--muted);font-size:12px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface-2);border-radius:14px;padding:4px}
-.seg button{border:0;background:transparent;color:var(--muted);padding:11px;border-radius:11px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.seg button{border:0;background:transparent;color:var(--muted);padding:11px;border-radius:11px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .3s,color .3s}
 .seg button.on{background:#fff;color:#0b1020}
 .viewer{position:relative;width:min(260px,78vw);aspect-ratio:1;margin:4px auto 14px}
 .viewer svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.track{stroke:var(--line)}
-.prog{stroke:url(#g);stroke-linecap:round;transition:stroke-dashoffset .25s ease}
+.track{stroke:var(--line);transition:stroke .4s}
+.prog{stroke:url(#g);stroke-linecap:round;transition:stroke-dashoffset .25s ease,filter .3s}
+.viewer.scanning .prog{filter:drop-shadow(0 0 6px rgba(34,211,238,.8))}
+.viewer.scanning .track{stroke:rgba(34,211,238,.22)}
 .feed{position:absolute;inset:14px;border-radius:50%;overflow:hidden;background:#0a0f1d}
 .feed video,.feed img{width:100%;height:100%;object-fit:cover;display:block}
 .feed video{transform:scaleX(-1)}
+#dots{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
+.viewer.done .feed{animation:flash .9s ease}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(34,211,238,.7)}100%{box-shadow:0 0 0 24px rgba(34,211,238,0)}}
 .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px;gap:12px;padding:0 36px}
 .placeholder .ico{width:52px;height:52px;border-radius:16px;background:var(--surface-2);display:grid;place-items:center;color:var(--text)}
+.count{position:absolute;inset:0;display:grid;place-items:center;font-size:72px;font-weight:800;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6);pointer-events:none}
+.count.pop{animation:pop .85s ease}
+@keyframes pop{0%{transform:scale(1.5);opacity:0}30%{opacity:1}100%{transform:scale(.8);opacity:0}}
 .viewer.scanning .feed::after{content:"";position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--a2),transparent);box-shadow:0 0 14px var(--a2);animation:sweep 1.8s ease-in-out infinite}
 @keyframes sweep{0%{top:0}50%{top:100%}100%{top:0}}
 .status{text-align:center;color:var(--muted);font-size:14px;min-height:22px;margin:14px 0 6px}
@@ -57,29 +65,38 @@ body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-ap
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1px solid var(--line);background:var(--surface-2);color:var(--text);border-radius:999px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .chip.on{background:var(--a1);border-color:var(--a1);color:#fff}
-.result{background:linear-gradient(135deg,rgba(124,92,255,.24),rgba(34,211,238,.10));border:1px solid rgba(124,92,255,.3);border-radius:var(--r);padding:20px;margin:18px 0 14px;animation:up .45s ease}
+.result{background:linear-gradient(135deg,rgba(124,92,255,.24),rgba(34,211,238,.10));border:1px solid rgba(124,92,255,.3);border-radius:var(--r);padding:20px;margin:18px 0 14px}
+.res-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.result h2{font-size:36px;margin:4px 0 6px;letter-spacing:-.02em}
-.result p{margin:0;color:#c9d1ea;font-size:14px}
+.result h2{font-size:36px;margin:4px 0 4px;letter-spacing:-.02em}
+.alt{font-size:13px;color:#c9d1ea}
+.result p{margin:12px 0 0;color:#c9d1ea;font-size:14px}
+.art{width:84px;height:104px;flex:0 0 auto;overflow:visible}
+.art *{fill:none;stroke:url(#ga);stroke-width:3;stroke-linejoin:round}
+.reveal .art *{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.2s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
 .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
 .metric{background:rgba(0,0,0,.25);border-radius:14px;padding:10px;text-align:center}
-.metric b{display:block;font-size:17px}
+.metric b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
 .metric span{font-size:11px;color:var(--muted)}
 .tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-bottom:14px}
 .tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px}
 .tabs::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:9px 16px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:9px 16px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all .25s}
 .tab.on{color:var(--text);background:var(--surface-2);border-color:rgba(124,92,255,.6)}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;animation:fade .35s ease}
 .opt{display:block;text-align:left;font-family:inherit;color:inherit;background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:14px;cursor:pointer;transition:border-color .2s,transform .15s,background .2s}
 .opt:active{transform:scale(.98)}
 .opt b{display:block;font-size:15px;margin:6px 0 4px}
 .opt span{display:block;font-size:12.5px;color:var(--muted);line-height:1.45}
-.opt .rank{font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.opt .rank{font-size:11px;letter-spacing:.08em}
 .opt.sel{border-color:var(--a2);background:linear-gradient(160deg,rgba(124,92,255,.18),rgba(34,211,238,.08))}
 .opt.sel .rank{color:var(--a2)}
+.reveal .opt{animation:up .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 60ms)}
+.reveal .result{animation:up .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .foot{color:var(--muted);font-size:12px;text-align:center;margin-top:26px;line-height:1.6}
-@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
@@ -109,7 +126,7 @@ body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-ap
   </section>
 
   <section class="card">
-    <div class="card-h"><h2>2. Scan your face</h2><small>About 3 seconds</small></div>
+    <div class="card-h"><h2>2. Scan your face</h2><small>About 4 seconds</small></div>
     <div class="viewer" id="viewer">
       <svg viewBox="0 0 260 260" aria-hidden="true">
         <defs>
@@ -123,11 +140,13 @@ body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-ap
       <div class="feed">
         <video id="video" playsinline muted hidden></video>
         <img id="photo" alt="Your uploaded photo" hidden>
+        <canvas id="dots"></canvas>
         <div class="placeholder" id="ph">
           <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
           <div>Start the camera or upload a clear, front-facing photo</div>
         </div>
       </div>
+      <div class="count" id="count"></div>
     </div>
 
     <div class="status" id="status">Ready when you are.</div>
@@ -164,6 +183,7 @@ body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-ap
 <script>
 const $ = s => document.querySelector(s);
 const video = $('#video'), photo = $('#photo'), ring = $('#ring');
+const dots = $('#dots'), dctx = dots.getContext('2d');
 const C = 767;
 const TITLE = {hair:'Hairstyles', beard:'Beard styles', sun:'Sunglasses', eye:'Eyeglasses'};
 const LAB = {oval:'Oval', round:'Round', square:'Square', oblong:'Oblong', heart:'Heart', diamond:'Diamond'};
@@ -249,8 +269,29 @@ const DATA = {
   }
 };
 
-let gender = 'man', tab = 'hair', mode = null, scanning = false, looping = false, busy = false;
-let samples = [], shape = null, lastMetrics = null, faceMesh = null, watchdog = null;
+// Typical proportions per shape: length, forehead width and jaw width, all relative to cheekbone width
+const PROTO = {
+  oval:    {L:1.25, F:0.86, J:0.80},
+  round:   {L:1.12, F:0.90, J:0.82},
+  square:  {L:1.17, F:0.93, J:0.94},
+  oblong:  {L:1.42, F:0.86, J:0.80},
+  heart:   {L:1.22, F:0.94, J:0.70},
+  diamond: {L:1.20, F:0.80, J:0.74}
+};
+const SIG = {L:0.09, F:0.07, J:0.09};
+
+// Shape outlines for the result card (drawn with pathLength=1 for the animation)
+const ART = {
+  oval:    '<ellipse pathLength="1" cx="40" cy="50" rx="27" ry="40"/>',
+  round:   '<circle pathLength="1" cx="40" cy="50" r="34"/>',
+  square:  '<rect pathLength="1" x="13" y="14" width="54" height="72" rx="16"/>',
+  oblong:  '<rect pathLength="1" x="24" y="6" width="32" height="88" rx="16"/>',
+  heart:   '<path pathLength="1" d="M40 92 C12 72 6 44 14 28 C22 12 40 16 40 32 C40 16 58 12 66 28 C74 44 68 72 40 92Z"/>',
+  diamond: '<path pathLength="1" d="M40 6 L68 46 L40 94 L12 46 Z"/>'
+};
+
+let gender = 'man', tab = 'hair', mode = null, scanning = false, looping = false, busy = false, reveal = false;
+let samples = [], shape = null, alt = null, lastMetrics = null, faceMesh = null, watchdog = null;
 const picks = {};
 const HKEY = 'fsf_history';
 
@@ -258,6 +299,7 @@ const setStatus = t => { $('#status').textContent = t; };
 const setProgress = p => { ring.style.strokeDashoffset = C * (1 - Math.min(1, p)); };
 const syncGender = () => { $('#gM').classList.toggle('on', gender === 'man'); $('#gW').classList.toggle('on', gender === 'woman'); };
 function setStep(n){ [1,2,3].forEach(i => { const el = $('#st' + i); el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); }); }
+const med = a => { const s = [...a].sort((x,y) => x - y), n = s.length; return n % 2 ? s[(n-1)/2] : (s[n/2-1] + s[n/2]) / 2; };
 
 function getMesh(){
   if (faceMesh) return faceMesh;
@@ -267,55 +309,83 @@ function getMesh(){
   return faceMesh;
 }
 
-// Ratios relative to cheek width, so distance from the camera does not matter
+// Ratios relative to cheekbone width, so distance from the camera does not matter
 function measure(f, w, h){
   const d = (a, b) => Math.hypot((f[a].x - f[b].x) * w, (f[a].y - f[b].y) * h);
   const cheek = d(234, 454);
   return { length: d(10, 152) / cheek, jaw: d(172, 397) / cheek, forehead: d(54, 284) / cheek };
 }
 
-function classify(m){
-  const L = m.length, J = m.jaw, F = m.forehead;
-  if (L >= 1.55) return 'oblong';
-  if (F < 0.82 && J < 0.82) return 'diamond';
-  if (F >= 0.88 && J <= 0.78) return 'heart';
-  if (L < 1.3) return J >= 0.9 ? 'square' : 'round';
-  if (J >= 0.9 && L < 1.4) return 'square';
-  return 'oval';
+// Distance to every shape's typical proportions, closest first
+function scoreAll(m){
+  return Object.keys(PROTO).map(k => {
+    const p = PROTO[k];
+    const d = Math.hypot((m.length - p.L) / SIG.L, (m.forehead - p.F) / SIG.F, (m.jaw - p.J) / SIG.J);
+    return { shape: k, d };
+  }).sort((a, b) => a.d - b.d);
+}
+
+function drawDots(f, vw, vh){
+  const S = dots.clientWidth;
+  if (dots.width !== S){ dots.width = S; dots.height = S; }
+  dctx.clearRect(0, 0, S, S);
+  if (!f || !vw || !vh) return;
+  const sc = S / Math.min(vw, vh);
+  const ox = (S - vw * sc) / 2, oy = (S - vh * sc) / 2;
+  const P = i => ({ x: f[i].x * vw * sc + ox, y: f[i].y * vh * sc + oy });
+  dctx.strokeStyle = 'rgba(34,211,238,.75)'; dctx.lineWidth = 2;
+  dctx.beginPath();
+  [234, 172, 152, 397, 454].forEach((i, k) => { const p = P(i); k ? dctx.lineTo(p.x, p.y) : dctx.moveTo(p.x, p.y); });
+  dctx.stroke();
+  dctx.fillStyle = '#22d3ee';
+  [10, 152, 234, 454, 172, 397, 54, 284].forEach(i => { const p = P(i); dctx.beginPath(); dctx.arc(p.x, p.y, 3, 0, Math.PI * 2); dctx.fill(); });
 }
 
 function onResults(res){
   const f = res.multiFaceLandmarks && res.multiFaceLandmarks[0];
-  const w = mode === 'photo' ? photo.naturalWidth : video.videoWidth;
-  const h = mode === 'photo' ? photo.naturalHeight : video.videoHeight;
+  const vw = mode === 'photo' ? photo.naturalWidth : video.videoWidth;
+  const vh = mode === 'photo' ? photo.naturalHeight : video.videoHeight;
+  if (mode === 'cam') drawDots(f, vw, vh);
   if (!f){
-    if (scanning) setStatus('No face found. Move closer to the camera.');
+    if (scanning) setStatus('Face not detected. Move closer and improve the light.');
     else if (mode === 'photo') setStatus('No face found in this photo. Try a clear, front-facing photo.');
     return;
   }
-  const m = measure(f, w, h);
+  const m = measure(f, vw, vh);
   if (mode === 'photo') return finish([m]);
   if (scanning){
     samples.push(m);
-    setProgress(samples.length / 30);
-    setStatus(`Scanning… ${Math.min(samples.length, 30)} of 30`);
-    if (samples.length >= 30){ scanning = false; finish(samples); }
+    setProgress(samples.length / 45);
+    setStatus(`Scanning… ${Math.min(samples.length, 45)} of 45`);
+    if (samples.length >= 45){ scanning = false; finish(samples); }
   }
 }
 
 function finish(list){
-  const avg = { length: 0, jaw: 0, forehead: 0 };
-  list.forEach(m => { avg.length += m.length; avg.jaw += m.jaw; avg.forehead += m.forehead; });
-  for (const k in avg) avg[k] /= list.length;
-  lastMetrics = avg;
-  shape = classify(avg);
+  const agg = {
+    length: med(list.map(m => m.length)),
+    jaw: med(list.map(m => m.jaw)),
+    forehead: med(list.map(m => m.forehead))
+  };
+  lastMetrics = agg;
+  const r = scoreAll(agg);
+  shape = r[0].shape;
+  alt = (r[1].d - r[0].d) < 0.6 ? r[1].shape : null;
+  scanning = false;
   setProgress(1);
-  $('#viewer').classList.remove('scanning');
+  const v = $('#viewer');
+  v.classList.remove('scanning'); v.classList.add('done');
+  setTimeout(() => v.classList.remove('done'), 1400);
+  dctx.clearRect(0, 0, dots.width, dots.height);
+  if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
   $('#scanBtn').disabled = !video.srcObject;
+  $('#scanBtn').textContent = 'Scan again';
   saveHist(shape);
   setStep(3);
   setStatus('Done. Your results are below.');
+  reveal = true;
   render();
+  reveal = false;
   $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -333,28 +403,58 @@ async function startCam(){
     $('#scanBtn').disabled = false;
     setStep(2);
     setStatus('Look straight at the camera, then tap Scan face.');
+    if (!looping){ looping = true; loop(); }
   }catch(e){
     setStatus('Camera unavailable (' + e.name + '). Allow camera access or upload a photo.');
   }
 }
 
+function stopCam(){
+  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+  video.srcObject = null; video.hidden = true;
+  scanning = false; mode = null;
+  $('#viewer').classList.remove('scanning');
+  $('#ph').hidden = !photo.hidden;
+  $('#camBtn').textContent = 'Start camera';
+  $('#camBtn').disabled = false;
+  $('#scanBtn').disabled = true;
+  dctx.clearRect(0, 0, dots.width, dots.height);
+}
+
+function showCount(t){
+  const c = $('#count');
+  c.textContent = t;
+  c.classList.remove('pop'); void c.offsetWidth;
+  if (t !== '') c.classList.add('pop');
+}
+
 function startScan(){
   if (!video.srcObject) return;
-  scanning = true; samples = []; shape = null; lastMetrics = null;
-  clearTimeout(watchdog);
-  watchdog = setTimeout(() => {
-    if (scanning && samples.length === 0) setStatus('The face model is taking too long to load. Refresh the page or choose your shape below.');
-  }, 20000);
+  shape = null; alt = null; lastMetrics = null; samples = [];
   setProgress(0);
   $('#result').innerHTML = '';
-  $('#viewer').classList.add('scanning');
   $('#scanBtn').disabled = true;
-  setStatus('Hold still… scanning');
-  if (!looping){ looping = true; loop(); }
+  let n = 3;
+  const tick = () => {
+    if (n > 0){
+      showCount(n); setStatus('Get ready… ' + n); n--;
+      setTimeout(tick, 850);
+    } else {
+      showCount('');
+      scanning = true;
+      $('#viewer').classList.add('scanning');
+      setStatus('Hold still. Scanning…');
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        if (scanning && samples.length < 5) setStatus('Face not stable. Improve the light and look straight at the camera.');
+      }, 12000);
+    }
+  };
+  tick();
 }
 
 async function loop(){
-  if (!scanning){ looping = false; return; }
+  if (mode !== 'cam' || !video.srcObject){ looping = false; return; }
   if (!busy && video.readyState >= 2){
     busy = true;
     try{ await faceMesh.send({ image: video }); }catch(e){ setStatus('Error: ' + e.message); }
@@ -364,10 +464,10 @@ async function loop(){
 }
 
 function startOver(){
-  shape = null; lastMetrics = null;
+  shape = null; alt = null; lastMetrics = null;
   $('#result').innerHTML = '';
-  setStep(video.srcObject || mode === 'photo' ? 2 : 1);
-  if (video.srcObject) return startScan();
+  if (video.srcObject){ startScan(); return; }
+  setStep(1);
   setStatus('Start the camera or upload a photo to scan again.');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -376,13 +476,11 @@ $('#file').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
   if (typeof FaceMesh === 'undefined') return setStatus('The face model did not load. Refresh the page.');
-  scanning = false;
-  $('#viewer').classList.remove('scanning');
-  if (video.srcObject){ video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+  stopCam();
   video.hidden = true; photo.hidden = false; $('#ph').hidden = true;
   photo.src = URL.createObjectURL(f);
   mode = 'photo';
-  $('#camBtn').disabled = false; $('#camBtn').textContent = 'Start camera';
+  $('#camBtn').disabled = false;
   $('#scanBtn').disabled = true;
   setStep(2);
   setStatus('Analysing your photo…');
@@ -398,7 +496,7 @@ photo.onload = async () => {
 
 function pickShape(s){
   scanning = false;
-  shape = s; lastMetrics = null;
+  shape = s; alt = null; lastMetrics = null;
   setProgress(1);
   $('#viewer').classList.remove('scanning');
   document.querySelectorAll('.chip[data-s]').forEach(c => c.classList.toggle('on', c.dataset.s === s));
@@ -419,26 +517,36 @@ function setTab(c){ tab = c; render(); }
 function pick(cat, i){
   const k = gender + shape + cat;
   picks[k] = picks[k] === i ? undefined : i;
-  render();
+  document.querySelectorAll('.opt').forEach((el, j) => el.classList.toggle('sel', picks[k] === j));
 }
 
 function render(){
   const box = $('#result');
-  if (!shape){ box.innerHTML = ''; return; }
+  if (!shape){ box.innerHTML = ''; box.className = ''; return; }
+  box.className = reveal ? 'reveal' : '';
   const cats = gender === 'man' ? ['hair','beard','sun','eye'] : ['hair','sun','eye'];
   if (!cats.includes(tab)) tab = 'hair';
   const m = lastMetrics;
   const metrics = m ? `<div class="metrics">
-      <div class="metric"><b>${m.length.toFixed(2)}</b><span>Length</span></div>
-      <div class="metric"><b>${m.jaw.toFixed(2)}</b><span>Jaw</span></div>
-      <div class="metric"><b>${m.forehead.toFixed(2)}</b><span>Forehead</span></div>
+      <div class="metric"><b data-to="${m.length}">${m.length.toFixed(2)}</b><span>Length</span></div>
+      <div class="metric"><b data-to="${m.jaw}">${m.jaw.toFixed(2)}</b><span>Jaw</span></div>
+      <div class="metric"><b data-to="${m.forehead}">${m.forehead.toFixed(2)}</b><span>Forehead</span></div>
     </div>` : '';
   const items = DATA[gender][shape][tab];
   const cur = picks[gender + shape + tab];
   box.innerHTML = `
     <div class="result">
-      <div class="eyebrow">Your face shape</div>
-      <h2>${LAB[shape]}</h2>
+      <div class="res-top">
+        <div>
+          <div class="eyebrow">Your face shape</div>
+          <h2>${LAB[shape]}</h2>
+          ${alt ? `<div class="alt">Also close to ${LAB[alt]}</div>` : ''}
+        </div>
+        <svg class="art" viewBox="0 0 80 100" aria-hidden="true">
+          <defs><linearGradient id="ga" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+          ${ART[shape]}
+        </svg>
+      </div>
       <p>${DESC[shape]}</p>
       ${metrics}
     </div>
@@ -450,8 +558,21 @@ function render(){
     <section class="card">
       <div class="card-h"><h2>Recommended for you</h2><small>${gender === 'man' ? 'Men' : 'Women'}</small></div>
       <div class="tabs">${cats.map(c => `<button class="tab${c === tab ? ' on' : ''}" onclick="setTab('${c}')">${TITLE[c]}</button>`).join('')}</div>
-      <div class="grid">${items.map(([n, t], i) => `<button class="opt${cur === i ? ' sel' : ''}" onclick="pick('${tab}', ${i})"><span class="rank">${String(i + 1).padStart(2, '0')}</span><b>${n}</b><span>${t}</span></button>`).join('')}</div>
+      <div class="grid">${items.map(([n, t], i) => `<button class="opt${cur === i ? ' sel' : ''}" style="--i:${i}" onclick="pick('${tab}', ${i})"><span class="rank">${String(i + 1).padStart(2, '0')}</span><b>${n}</b><span>${t}</span></button>`).join('')}</div>
     </section>`;
+  if (reveal) countUp();
+}
+
+function countUp(){
+  document.querySelectorAll('[data-to]').forEach(el => {
+    const to = parseFloat(el.dataset.to), t0 = performance.now(), dur = 900;
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = (to * e).toFixed(2);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
 }
 
 function wrapText(ctx, text, x, y, maxW, lh){
@@ -530,13 +651,16 @@ function renderHist(){
 function loadPast(i){
   const h = loadHist()[i];
   if (!h) return;
-  shape = h.shape; lastMetrics = null;
-  setStep(3);
+  shape = h.shape; alt = null; lastMetrics = null;
   gender = h.gender;
   syncGender();
+  setStep(3);
   render();
   $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// Turn the camera off when the page is hidden, so it does not keep running in the background
+document.addEventListener('visibilitychange', () => { if (document.hidden && video.srcObject) stopCam(); });
 
 // Start-up
 setStep(1);
